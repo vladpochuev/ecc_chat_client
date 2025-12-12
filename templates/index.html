@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Client</title>
+    <style>
+        body { font-family: sans-serif; max-width: 400px; margin: 40px auto; }
+        .msg { padding: 5px 10px; margin: 5px 0; background: #eee; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+{% if page == "register" %}
+
+    <h2>Реєстрація</h2>
+    <form method="POST">
+        <input name="username" placeholder="Введіть ім'я" required>
+        <button type="submit">OK</button>
+    </form>
+
+{% elif page == "users" %}
+
+    <h2>Виберіть користувача</h2>
+    <ul>
+        {% for u in users %}
+            <li><a href="/chat/{{ u }}">{{ u }}</a></li>
+        {% endfor %}
+    </ul>
+
+{% elif page == "chat" %}
+
+    <h2>Чат с {{ target }}</h2>
+
+    <div id="messages"></div>
+
+    <input id="text" placeholder="Введіть повідомлення">
+    <button onclick="send()">Отправить</button>
+
+    <script>
+        async function loadMessages() {
+            let r = await fetch("/messages/{{ target }}");
+            let msgs = await r.json();
+            let area = document.getElementById("messages");
+            area.innerHTML = "";
+            msgs.forEach(m => {
+                area.innerHTML += `<div class="msg"><b>${m.from}:</b> ${m.text}</div>`;
+            });
+        }
+
+        async function send() {
+            let text = document.getElementById("text").value;
+            await fetch("/send/{{ target }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text})
+            });
+            document.getElementById("text").value = "";
+            loadMessages();
+        }
+
+        setInterval(loadMessages, 1000);
+        loadMessages();
+    </script>
+
+{% endif %}
+
+</body>
+</html>
