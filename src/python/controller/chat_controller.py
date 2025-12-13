@@ -57,13 +57,13 @@ def get_messages(name):
                           message["timestamp"])
         encrypted_text = EncryptedText(message.cipher_text, message.nonce)
 
-        if message.toClient == username:
-            user_public_key = clients[message.fromClient].public_key
+        if message.to_client == username:
+            user_public_key = clients[message.from_client].public_key
         else:
-            user_public_key = clients[message.toClient].public_key
+            user_public_key = clients[message.to_client].public_key
 
         text = get_decrypted_text(encrypted_text, user_public_key)
-        user_messages.append(UserMessage(message.fromClient, text))
+        user_messages.append(UserMessage(message.from_client, text))
     return jsonify([m.to_dict() for m in user_messages])
 
 
