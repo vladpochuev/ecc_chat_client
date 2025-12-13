@@ -5,8 +5,9 @@ import requests
 from flask import Blueprint
 from flask import render_template, request, redirect, session, jsonify
 
-from src.python.model import Client, Message
-from src.python.service import public_key_pem as public_key, get_encrypted_text
+from src.python.model import Client, Message, UserMessage
+from src.python.model.encrypted_text import EncryptedText
+from src.python.service import public_key_pem as public_key, get_encrypted_text, get_decrypted_text
 
 chat_controller = Blueprint("chat", __name__)
 
@@ -29,11 +30,11 @@ def index():
         return render_template("index.html", page="register")
 
     received_clients = requests.get(f"{SERVER_URL}/clients").json()
-    valid_clients = [Client(u["clientId"], u["publicKey"]) for u in received_clients if u != session["username"]]
-    usernames = [client.clientId for client in valid_clients]
+    valid_clients = [Client(u["clientId"], u["publicKey"]) for u in received_clients if u["clientId"] != session["username"]]
+    usernames = [client.client_id for client in valid_clients]
 
     for valid_client in valid_clients:
-        clients[valid_client.clientId] = valid_client
+        clients[valid_client.client_id] = valid_client
 
     return render_template("index.html", page="users", users=usernames)
 
@@ -45,10 +46,25 @@ def chat(name):
 
 @chat_controller.route("/messages/<name>")
 def get_messages(name):
+    global clients
+
     username = session["username"]
-    r = requests.get(f"{SERVER_URL}/messages",
+    r = requests.get(f"{SERVER_URL}/messages/history",
                      params={"from": username, "to": name})
-    return jsonify(r.json())
+    user_messages = []
+    for message in r.json():
+        message = Message(message["fromClient"], message["toClient"], message["cipherText"], message["nonce"],
+                          message["timestamp"])
+        encrypted_text = EncryptedText(message.cipher_text, message.nonce)
+
+        if message.toClient == username:
+            user_public_key = clients[message.fromClient].public_key
+        else:
+            user_public_key = clients[message.toClient].public_key
+
+        text = get_decrypted_text(encrypted_text, user_public_key)
+        user_messages.append(UserMessage(message.fromClient, text))
+    return jsonify([m.to_dict() for m in user_messages])
 
 
 @chat_controller.route("/send/<name>", methods=["POST"])
@@ -57,7 +73,7 @@ def send(name):
 
     from_client = session["username"]
     text = request.json["text"]
-    encrypted_text = get_encrypted_text(text, clients[name].publicKey)
+    encrypted_text = get_encrypted_text(text, clients[name].public_key)
     timestamp = datetime.now().timestamp()
 
     message = Message(from_client, name, encrypted_text.cipher_text, encrypted_text.nonce, int(timestamp))

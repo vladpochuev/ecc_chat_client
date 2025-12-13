@@ -29,12 +29,12 @@
 
 {% elif page == "chat" %}
 
-    <h2>Чат с {{ target }}</h2>
+    <h2>Чат з {{ target }}</h2>
 
     <div id="messages"></div>
 
     <input id="text" placeholder="Введіть повідомлення">
-    <button onclick="send()">Отправить</button>
+    <button onclick="send()">Надіслати</button>
 
     <script>
         async function loadMessages() {
@@ -43,7 +43,8 @@
             let area = document.getElementById("messages");
             area.innerHTML = "";
             msgs.forEach(m => {
-                area.innerHTML += `<div class="msg"><b>${m.from}:</b> ${m.text}</div>`;
+                console.log(m)
+                area.innerHTML += `<div class="msg"><b>${m.fromClient}:</b> ${m.text}</div>`;
             });
         }
 
