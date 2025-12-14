@@ -1,20 +1,26 @@
 import os
+import sys
 
-from flask.cli import load_dotenv
+from dotenv import load_dotenv
+from flask import Flask
 
 load_dotenv()
 
-from src.python.controller import chat_controller
+def resource_path(relative_path) -> str:
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
-from flask import Flask
+    return os.path.join(base_path, relative_path)
 
-BASE_DIR = os.getcwd()
+app = Flask(
+    __name__,
+    template_folder=resource_path("src/resources/templates"),
+    static_folder=resource_path("src/resources/static")
+)
 
-app = Flask(__name__,
-            template_folder=os.path.join(BASE_DIR, "src", "resources", "templates"),
-            static_folder=os.path.join(BASE_DIR, "src", "resources", "static"))
-app.secret_key = os.getenv("SECRET_KEY")
-
+from src.python.controller.chat_controller import chat_controller
 app.register_blueprint(chat_controller)
 
 if __name__ == "__main__":
