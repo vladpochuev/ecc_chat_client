@@ -1,6 +1,7 @@
 import os
 import sys
 
+import webview
 from dotenv import load_dotenv
 from flask import Flask
 
@@ -20,8 +21,10 @@ app = Flask(
     static_folder=resource_path("src/resources/static")
 )
 
+window = webview.create_window('Chat', app)
+
 from src.python.controller.chat_controller import chat_controller
 app.register_blueprint(chat_controller)
 
 if __name__ == "__main__":
-    app.run(port=os.getenv("FLASK_RUN_PORT"))
+    webview.start()
