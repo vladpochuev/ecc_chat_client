@@ -18,4 +18,4 @@ app.secret_key = os.getenv("SECRET_KEY")
 app.register_blueprint(chat_controller)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(port=os.getenv("FLASK_RUN_PORT"))
