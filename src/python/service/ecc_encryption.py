@@ -8,7 +8,25 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from src.python.model import EncryptedText
 
-private_key = ec.generate_private_key(ec.SECP256R1())
+private_key_path = os.path.join(os.getenv("PRIVATE_KEY_DIR"), "private_key.pem")
+
+if os.path.exists(private_key_path):
+    with open(private_key_path, "rb") as f:
+        private_key = serialization.load_pem_private_key(
+            f.read(),
+            password=os.getenv("KEY_PASSWORD").encode("utf-8")
+        )
+else:
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.BestAvailableEncryption(os.getenv("KEY_PASSWORD").encode("utf-8"))
+    )
+
+    with open(private_key_path, "wb") as f:
+        f.write(pem)
+
 public_key = private_key.public_key()
 
 public_key_pem = public_key.public_bytes(
