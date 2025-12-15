@@ -1,4 +1,5 @@
 import os
+import traceback
 from datetime import datetime
 
 import requests
@@ -30,7 +31,8 @@ def index():
         return render_template("index.html", page="register")
 
     received_clients = requests.get(f"{SERVER_URL}/clients").json()
-    valid_clients = [Client(u["clientId"], u["publicKey"]) for u in received_clients if u["clientId"] != session["username"]]
+    valid_clients = [Client(u["clientId"], u["publicKey"]) for u in received_clients if
+                     u["clientId"] != session["username"]]
     usernames = [client.client_id for client in valid_clients]
 
     for valid_client in valid_clients:
@@ -53,17 +55,21 @@ def get_messages(name):
                      params={"from": username, "to": name})
     user_messages = []
     for message in r.json():
-        message = Message(message["fromClient"], message["toClient"], message["cipherText"], message["nonce"],
-                          message["timestamp"])
-        encrypted_text = EncryptedText(message.cipher_text, message.nonce)
+        try:
+            message = Message(message["fromClient"], message["toClient"], message["cipherText"], message["nonce"],
+                              message["timestamp"])
+            encrypted_text = EncryptedText(message.cipher_text, message.nonce)
 
-        if message.to_client == username:
-            user_public_key = clients[message.from_client].public_key
-        else:
-            user_public_key = clients[message.to_client].public_key
+            if message.to_client == username:
+                user_public_key = clients[message.from_client].public_key
+            else:
+                user_public_key = clients[message.to_client].public_key
 
-        text = get_decrypted_text(encrypted_text, user_public_key)
-        user_messages.append(UserMessage(message.from_client, text))
+            text = get_decrypted_text(encrypted_text, user_public_key)
+            user_messages.append(UserMessage(message.from_client, text))
+        except Exception:
+            print("Error while decrypting the message")
+            traceback.print_exc()
     return jsonify([m.to_dict() for m in user_messages])
 
 
